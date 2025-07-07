@@ -102,6 +102,12 @@
       const overDays = Math.max(0, daysOnJob - 365);
       const extraLeave = overDays / 365 * standard;
       const totalLeave = standard + extraLeave;
+      const roundedLeave = Math.round(totalLeave);
+
+      // 计算返程日期（休假日期 + 四舍五入后的总休假）
+      const returnDate = new Date(leaveDate);
+      returnDate.setDate(returnDate.getDate() + roundedLeave);
+      const returnDateStr = returnDate.toISOString().split('T')[0]; // 格式化为 yyyy-mm-dd
 
       document.getElementById('result').innerHTML = `
         <div class="result-item">
@@ -118,7 +124,11 @@
         </div>
         <div class="result-item">
           <span class="result-title">总休假：</span>
-          <span class="result-value">${totalLeave.toFixed(2)} 天</span>
+          <span class="result-value">${totalLeave.toFixed(2)} 天（即：${roundedLeave} 天）</span>
+        </div>
+        <div class="result-item">
+          <span class="result-title">返程日期：</span>
+          <span class="result-value">${returnDateStr}</span>
         </div>
       `;
     }
