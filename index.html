@@ -45,9 +45,14 @@
       font-weight: bold;
       margin-top: 20px;
       cursor: pointer;
+      width: 100%;
     }
     button:hover {
       background-color: #155a94;
+    }
+    button:disabled {
+      background-color: #bdc3c7;
+      cursor: not-allowed;
     }
     .result {
       background: #e6f0fa;
@@ -69,31 +74,112 @@
     .result-value {
       padding-left: 10px;
     }
+    .highlight {
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
+    .highlight .result-title {
+      color: #d68910;
+    }
+    .input-group {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      border: 1px solid #e3f2fd;
+    }
+    .input-group h3 {
+      margin-top: 0;
+      color: #1e73be;
+      border-bottom: 2px solid #e3f2fd;
+      padding-bottom: 10px;
+    }
+    .step {
+      display: block;
+    }
+    .step.hidden {
+      display: none;
+    }
+    .step-title {
+      background: linear-gradient(135deg, #1e73be, #3498db);
+      color: white;
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 20px;
+      font-size: 18px;
+    }
+    .success-message {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 15px;
+      border-radius: 8px;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
   <h1>休假计算器</h1>
-  <label for="startDate">到岗日期</label>
-  <input type="date" id="startDate">
+  
+  <!-- 第一步：基本信息输入 -->
+  <div class="step" id="step1">
+    <div class="step-title">第一步：基本信息</div>
+    
+    <div class="input-group">
+      <h3>基本信息</h3>
+      <label for="startDate">到岗日期</label>
+      <input type="date" id="startDate">
 
-  <label for="leaveDate">休假日期</label>
-  <input type="date" id="leaveDate">
+      <label for="leaveDate">休假日期</label>
+      <input type="date" id="leaveDate">
 
-  <label for="standard">年假标准（例如：40天）</label>
-  <input type="number" id="standard" placeholder="例如：40">
+      <label for="standard">年假标准（例如：40天）</label>
+      <input type="number" id="standard" placeholder="例如：40">
 
-  <button onclick="calculateLeave()">计算</button>
+      <label for="unusedLeave">应休未休假期（天）</label>
+      <input type="number" id="unusedLeave" placeholder="例如：10" value="0">
+    </div>
 
-  <div class="result" id="result"></div>
+    <button onclick="calculateTotalLeave()">计算可休假天数</button>
+  </div>
+
+  <!-- 总休假结果显示 -->
+  <div class="result" id="totalResult"></div>
+
+  <!-- 第二步：计划休假输入 -->
+  <div class="step hidden" id="step2">
+    <div class="step-title">第二步：计划休假天数</div>
+    
+    <div class="input-group">
+      <h3>休假计划</h3>
+      <label for="plannedLeave">计划休假天数（天）</label>
+      <input type="number" id="plannedLeave" placeholder="请输入不超过总休假天数的数值" value="">
+      <small style="color: #7f8c8d; margin-top: 5px; display: block;">可休假范围：1 - <span id="maxDays"></span> 天</small>
+    </div>
+
+    <button onclick="calculateReturnDate()">计算返程日期</button>
+    <button onclick="resetCalculator()" style="background-color: #95a5a6; margin-left: 10px; width: auto; display: inline-block;">重新计算</button>
+  </div>
+
+  <!-- 最终结果显示 -->
+  <div class="result" id="finalResult"></div>
 
   <script>
-    function calculateLeave() {
+    let totalLeaveDays = 0;
+
+    function calculateTotalLeave() {
       const startDate = new Date(document.getElementById('startDate').value);
       const leaveDate = new Date(document.getElementById('leaveDate').value);
       const standard = parseFloat(document.getElementById('standard').value);
+      const unusedLeave = parseFloat(document.getElementById('unusedLeave').value) || 0;
 
       if (!startDate || !leaveDate || isNaN(standard)) {
-        document.getElementById('result').innerHTML = '<div class="result-item">⚠️ 请填写所有输入项。</div>';
+        document.getElementById('totalResult').innerHTML = '<div class="result-item">⚠️ 请填写基本信息中的所有必填项。</div>';
         return;
       }
 
@@ -101,15 +187,12 @@
       const daysOnJob = Math.floor((leaveDate - startDate) / msInDay);
       const overDays = Math.max(0, daysOnJob - 365);
       const extraLeave = overDays / 365 * standard;
-      const totalLeave = standard + extraLeave;
-      const roundedLeave = Math.round(totalLeave);
+      
+      // 计算总休假：标准年假 + 额外休假 + 应休未休假期
+      const totalLeave = standard + extraLeave + unusedLeave;
+      totalLeaveDays = Math.round(totalLeave);
 
-      // 计算返程日期（休假日期 + 四舍五入后的总休假）
-      const returnDate = new Date(leaveDate);
-      returnDate.setDate(returnDate.getDate() + roundedLeave);
-      const returnDateStr = returnDate.toISOString().split('T')[0]; // 格式化为 yyyy-mm-dd
-
-      document.getElementById('result').innerHTML = `
+      document.getElementById('totalResult').innerHTML = `
         <div class="result-item">
           <span class="result-title">在岗天数：</span>
           <span class="result-value">${daysOnJob} 天</span>
@@ -123,14 +206,70 @@
           <span class="result-value">${extraLeave.toFixed(2)} 天</span>
         </div>
         <div class="result-item">
-          <span class="result-title">总休假：</span>
-          <span class="result-value">${totalLeave.toFixed(2)} 天（即：${roundedLeave} 天）</span>
+          <span class="result-title">应休未休：</span>
+          <span class="result-value">${unusedLeave} 天</span>
         </div>
-        <div class="result-item">
-          <span class="result-title">返程日期：</span>
-          <span class="result-value">${returnDateStr}</span>
+        <div class="highlight">
+          <div class="result-item">
+            <span class="result-title">总休假天数：</span>
+            <span class="result-value">${totalLeave.toFixed(2)} 天（即：${totalLeaveDays} 天）</span>
+          </div>
+        </div>
+        <div class="success-message">
+          ✅ 总休假天数已输出，请输入计划休假天数
         </div>
       `;
+
+      // 显示第二步
+      document.getElementById('step2').classList.remove('hidden');
+      document.getElementById('maxDays').textContent = totalLeaveDays;
+      document.getElementById('plannedLeave').setAttribute('max', totalLeaveDays);
+    }
+
+    function calculateReturnDate() {
+      const leaveDate = new Date(document.getElementById('leaveDate').value);
+      const plannedLeave = parseFloat(document.getElementById('plannedLeave').value);
+
+      if (isNaN(plannedLeave) || plannedLeave <= 0) {
+        document.getElementById('finalResult').innerHTML = '<div class="result-item">⚠️ 请输入有效的计划休假天数。</div>';
+        return;
+      }
+
+      if (plannedLeave > totalLeaveDays) {
+        document.getElementById('finalResult').innerHTML = `<div class="result-item">⚠️ 计划休假天数（${plannedLeave}天）不能超过总休假天数（${totalLeaveDays}天）。</div>`;
+        return;
+      }
+
+      // 计算返程日期
+      const returnDate = new Date(leaveDate);
+      returnDate.setDate(returnDate.getDate() + plannedLeave);
+      const returnDateStr = returnDate.toISOString().split('T')[0];
+
+      document.getElementById('finalResult').innerHTML = `
+        <div class="highlight">
+          <div class="result-item">
+            <span class="result-title">计划休假：</span>
+            <span class="result-value">${plannedLeave} 天</span>
+          </div>
+          <div class="result-item">
+            <span class="result-title">剩余可休：</span>
+            <span class="result-value">${totalLeaveDays - plannedLeave} 天</span>
+          </div>
+          <div class="result-item">
+            <span class="result-title">返程日期：</span>
+            <span class="result-value">${returnDateStr}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    function resetCalculator() {
+      // 重置所有输入
+      document.getElementById('plannedLeave').value = '';
+      document.getElementById('totalResult').innerHTML = '';
+      document.getElementById('finalResult').innerHTML = '';
+      document.getElementById('step2').classList.add('hidden');
+      totalLeaveDays = 0;
     }
   </script>
 </body>
