@@ -128,7 +128,7 @@
   
   <!-- 第一步：基本信息输入 -->
   <div class="step" id="step1">
-    <div class="step-title">第一步：基本信息</div>
+    <div class="step-title">第一步：输入基本信息</div>
     
     <div class="input-group">
       <h3>基本信息</h3>
@@ -145,7 +145,7 @@
       <input type="number" id="unusedLeave" placeholder="例如：10" value="0">
     </div>
 
-    <button onclick="calculateTotalLeave()">计算可休假天数</button>
+    <button onclick="calculateTotalLeave()">计算总休假天数</button>
   </div>
 
   <!-- 总休假结果显示 -->
@@ -153,7 +153,7 @@
 
   <!-- 第二步：计划休假输入 -->
   <div class="step hidden" id="step2">
-    <div class="step-title">第二步：计划休假天数</div>
+    <div class="step-title">第二步：选择计划休假天数</div>
     
     <div class="input-group">
       <h3>休假计划</h3>
@@ -185,17 +185,26 @@
 
       const msInDay = 1000 * 60 * 60 * 24;
       const daysOnJob = Math.floor((leaveDate - startDate) / msInDay);
+      
+      // 计算本周期应得年假（按比例）
+      const currentCycleLeave = Math.min(daysOnJob / 365 * standard, standard);
+      
+      // 计算超期额外休假
       const overDays = Math.max(0, daysOnJob - 365);
       const extraLeave = overDays / 365 * standard;
       
-      // 计算总休假：标准年假 + 额外休假 + 应休未休假期
-      const totalLeave = standard + extraLeave + unusedLeave;
+      // 计算总休假：本周期年假 + 额外休假 + 应休未休假期
+      const totalLeave = currentCycleLeave + extraLeave + unusedLeave;
       totalLeaveDays = Math.round(totalLeave);
 
       document.getElementById('totalResult').innerHTML = `
         <div class="result-item">
           <span class="result-title">在岗天数：</span>
           <span class="result-value">${daysOnJob} 天</span>
+        </div>
+        <div class="result-item">
+          <span class="result-title">本周期年假：</span>
+          <span class="result-value">${currentCycleLeave.toFixed(2)} 天</span>
         </div>
         <div class="result-item">
           <span class="result-title">超期在岗：</span>
