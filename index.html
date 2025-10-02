@@ -121,6 +121,53 @@
       border-radius: 8px;
       margin-top: 15px;
     }
+    .date-card {
+      background: linear-gradient(135deg, #56ab2f 0%, #a8e063 100%);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 10px 0;
+      color: white;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .date-card-header {
+      font-size: 14px;
+      opacity: 0.9;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    .date-card-content {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .date-display {
+      flex: 1;
+    }
+    .date-number {
+      font-size: 32px;
+      font-weight: bold;
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+    .date-month-year {
+      font-size: 16px;
+      opacity: 0.95;
+    }
+    .weekday-badge {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-size: 18px;
+      font-weight: bold;
+      backdrop-filter: blur(10px);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+    }
+    .return-date-card {
+      background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
+    }
+    .date-cards-container {
+      margin-top: 20px;
+    }
   </style>
 </head>
 <body>
@@ -172,6 +219,24 @@
   <script>
     let totalLeaveDays = 0;
 
+    // 获取星期几的中文名称
+    function getWeekdayName(date) {
+      const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      return weekdays[date.getDay()];
+    }
+
+    // 格式化日期显示
+    function formatDateDisplay(date) {
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return {
+        day: day,
+        monthYear: year + '年' + month + '月',
+        weekday: getWeekdayName(date)
+      };
+    }
+
     function calculateTotalLeave() {
       const startDate = new Date(document.getElementById('startDate').value);
       const leaveDate = new Date(document.getElementById('leaveDate').value);
@@ -185,14 +250,14 @@
 
       const msInDay = 1000 * 60 * 60 * 24;
       const daysOnJob = Math.floor((leaveDate - startDate) / msInDay);
-      
+
       // 计算本周期应得年假（按比例）
       const currentCycleLeave = Math.min(daysOnJob / 365 * standard, standard);
-      
+
       // 计算超期额外休假
       const overDays = Math.max(0, daysOnJob - 365);
       const extraLeave = overDays / 365 * standard;
-      
+
       // 计算总休假：本周期年假 + 额外休假 + 应休未休假期
       const totalLeave = currentCycleLeave + extraLeave + unusedLeave;
       totalLeaveDays = Math.round(totalLeave);
@@ -245,17 +310,44 @@
       }
 
       if (plannedLeave > totalLeaveDays) {
-        document.getElementById('finalResult').innerHTML = `<div class="result-item">⚠️ 计划休假天数（${plannedLeave}天）不能超过总休假天数（${totalLeaveDays}天）。</div>`;
+        document.getElementById('finalResult').innerHTML = '<div class="result-item">⚠️ 计划休假天数（' + plannedLeave + '天）不能超过总休假天数（' + totalLeaveDays + '天）。</div>';
         return;
       }
 
       // 计算返程日期
       const returnDate = new Date(leaveDate);
       returnDate.setDate(returnDate.getDate() + plannedLeave);
-      const returnDateStr = returnDate.toISOString().split('T')[0];
+
+      // 格式化日期显示
+      const leaveDateInfo = formatDateDisplay(leaveDate);
+      const returnDateInfo = formatDateDisplay(returnDate);
 
       document.getElementById('finalResult').innerHTML = `
-        <div class="highlight">
+        <div class="date-cards-container">
+          <div class="date-card">
+            <div class="date-card-header">休假日期</div>
+            <div class="date-card-content">
+              <div class="date-display">
+                <div class="date-number">${leaveDateInfo.day}</div>
+                <div class="date-month-year">${leaveDateInfo.monthYear}</div>
+              </div>
+              <div class="weekday-badge">${leaveDateInfo.weekday}</div>
+            </div>
+          </div>
+          
+          <div class="date-card return-date-card">
+            <div class="date-card-header">返程日期</div>
+            <div class="date-card-content">
+              <div class="date-display">
+                <div class="date-number">${returnDateInfo.day}</div>
+                <div class="date-month-year">${returnDateInfo.monthYear}</div>
+              </div>
+              <div class="weekday-badge">${returnDateInfo.weekday}</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="highlight" style="margin-top: 20px;">
           <div class="result-item">
             <span class="result-title">计划休假：</span>
             <span class="result-value">${plannedLeave} 天</span>
@@ -263,10 +355,6 @@
           <div class="result-item">
             <span class="result-title">剩余可休：</span>
             <span class="result-value">${totalLeaveDays - plannedLeave} 天</span>
-          </div>
-          <div class="result-item">
-            <span class="result-title">返程日期：</span>
-            <span class="result-value">${returnDateStr}</span>
           </div>
         </div>
       `;
